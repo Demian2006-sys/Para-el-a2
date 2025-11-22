@@ -81,13 +81,13 @@ public class SistemaIn {
 
 
     }
-
+//Interfaz de usuario
     private static void mostrarMenu() {
         System.out.println("\n===========================================");
         System.out.println("          SISTEMA DE GESTIÓN INVENTARIO          ");
         System.out.println("===========================================");
-        System.out.println("1.  Ingresar Nuevo Producto");
-        System.out.println("2.  Control de Bodega ");
+        System.out.println("1.  Control de bodega");
+        System.out.println("2.  Ingresar producto");
         System.out.println("3.  Realizar venta");
         System.out.println("4.  Reabastecer producto");
         System.out.println("5.  Editar Producto");
@@ -96,37 +96,83 @@ public class SistemaIn {
         System.out.println("8. Salir");
         System.out.print(">>> Ingrese su opcion: ");
     }
-
-    private static void ingresarProducto() {
-        if (!bodegaGestionada) {
-            System.out.println("\n Debe gestionar la bodega antes de ingresar productos.");
-            bodegaGestionada = false;
-            return;
-        } else{
-            System.out.println("\n--- Ingreso de Nuevo Producto ---");
+/** METODO PARA INGRESAR PRODUCTO */
+private static void ingresarProducto() {
+    if (!bodegaGestionada) {
+        System.out.println("\n Debe gestionar la bodega antes de ingresar productos.");
+        bodegaGestionada = false;
+        return;
+    } else{
+        System.out.println("\n--- Ingreso de Nuevo Producto ---");
         System.out.print("Ingrese nombre del producto: ");
         String nombre = scanner.nextLine();
 
         System.out.print("Ingrese precio: ");
+        while (!scanner.hasNextDouble()) {
+            System.out.println("\n Debe ingresar un número válido.");
+            scanner.nextLine();
+            System.out.print("Ingrese precio: ");
+        }
         double precio = scanner.nextDouble();
         scanner.nextLine();
+        if (precio < 0) {
+            System.out.println("\n El precio no puede ser negativo.");
+            return;
+        }
 
         System.out.print("Ingrese tipo: ");
         String tipo = scanner.nextLine();
 
-        System.out.print("Ingrese fecha de elaboración (dd/mm/aaaa): ");
-        String fechaElaboracion = scanner.nextLine();
+        System.out.println("\nIngrese si el producto es perecible o no: ");
+        System.out.println("1. Es perecible");
+        System.out.println("2. No es perecible");
+        System.out.print(">>> Seleccione: ");
+        int opcionPerecible = scanner.nextInt();
+        scanner.nextLine();
 
-        System.out.print("Ingrese fecha de vencimiento (dd/mm/aaaa): ");
-        String fechaVencimiento = scanner.nextLine();
+        String fechaElaboracion = "";
+        String fechaVencimiento = "";
+
+        System.out.print("Ingrese fecha de elaboración (dd/mm/aaaa): ");
+        fechaElaboracion = scanner.nextLine();
+
+        if (opcionPerecible == 1) {
+            System.out.print("Ingrese fecha de vencimiento (dd/mm/aaaa): ");
+            fechaVencimiento = scanner.nextLine();
+        } else if (opcionPerecible == 2) {
+            fechaVencimiento = "N/A";
+        } else {
+            System.out.println("\n Opción no válida.");
+            return;
+        }
 
         System.out.print("Ingrese garantía en meses: ");
+        while (!scanner.hasNextInt()) {
+            System.out.println("\n Debe ingresar un número válido.");
+            scanner.nextLine();
+            System.out.print("Ingrese garantía en meses: ");
+        }
         int garantiaMeses = scanner.nextInt();
         scanner.nextLine();
+        if (garantiaMeses < 0) {
+            System.out.println("\n La garantía no puede ser negativa.");
+            return;
+        }
+
 
         System.out.print("Ingrese cantidad: ");
+        while (!scanner.hasNextInt()) {
+            System.out.println("\n Debe ingresar un número válido.");
+            scanner.nextLine();
+            System.out.print("Ingrese cantidad: ");
+        }
         int cantidad = scanner.nextInt();
         scanner.nextLine();
+        if (cantidad < 0) {
+            System.out.println("\n La cantidad no puede ser negativa.");
+            return;
+        }
+
         long cantidadActual = obtenerCantidadTotal();
         if (cantidadActual + cantidad > capacidadMaximaBodega) {
             System.out.println("\n No se puede ingresar. Excede la capacidad máxima de la bodega.");
@@ -134,7 +180,7 @@ public class SistemaIn {
             System.out.println("Capacidad máxima: " + capacidadMaximaBodega);
             System.out.println("Cantidad que se puede agregar: " + (capacidadMaximaBodega - cantidadActual));
             return;
-            }
+        }
 
         System.out.println("\nDisponibilidad:");
         System.out.println("1. Disponible");
@@ -188,9 +234,9 @@ public class SistemaIn {
         listaproductos.add(nuevoProducto);
         System.out.println("\nProducto ingresado con éxito. Código asignado: " + nuevoProducto.getCodigo());
     }
-    }
+}
 
-
+/** METODO PARA GESTIONAR BODEGA */
     private static void gestionBodega() {
         System.out.println("\n--- Gestión de Bodega ---");
         System.out.println("Ingrese la capacidad máxima de la bodega");
@@ -205,7 +251,7 @@ public class SistemaIn {
         bodegaGestionada = true;
         System.out.println("\n Bodega gestionada con exito.");
     }
-
+/** METODO PARA REALIZAR VENTA */
     private static void realizarVenta() {
         if (listaproductos.isEmpty()) {
             System.out.println("\n No hay productos para vender.");
@@ -267,12 +313,9 @@ public class SistemaIn {
                 System.out.print("Ingrese nombre del cliente: ");
                 String cliente = scanner.nextLine();
 
-                System.out.print("Ingrese fecha (dd/mm/aaaa): ");
-                String fecha = scanner.nextLine();
-
                 String numeroTransaccion = "V-" + (listaVentas.size() + 1);
 
-                Venta venta = new Venta(fecha, monto, numeroTransaccion, cliente);
+                Venta venta = new Venta(fechaCompra, monto, numeroTransaccion, cliente);
                 listaVentas.add(venta);
                 listaTransacciones.add(venta);
 
@@ -288,7 +331,7 @@ public class SistemaIn {
             System.out.println("\n No se encontró ningún producto con código " + codigo + ".");
         }
     }
-
+/** METODO PARA REABASTECER PRODUCTO */
     private static void reabastecerProducto() {
         if (listaproductos.isEmpty()) {
             System.out.println("\n No hay productos registrados.");
@@ -352,7 +395,7 @@ public class SistemaIn {
             System.out.println("\n No se encontró ningún producto con código " + codigo + ".");
         }
     }
-
+/** METODO PARA ELIMINAR PRODUCTO */
     private static void eliminarProducto() {
         if (listaproductos.isEmpty()) {
             System.out.println("\n No hay productos registrados. Debe ingresar productos primero.");
@@ -385,6 +428,7 @@ public class SistemaIn {
             System.out.println("\n No se encontró ningún producto con código " + codigo + ".");
         }
     }
+    /** METODO PARA EDITAR PRODUCTO */
     private static void editarProducto() {
         if (listaproductos.isEmpty()) {
             System.out.println("\n No hay productos registrados. Debe ingresar productos primero.");
@@ -490,6 +534,7 @@ public class SistemaIn {
             System.out.println("\n No se encontró ningún producto con código " + codigo + ".");
         }
     }
+    /** METODO PARA MOSTRAR REPORTE */
     private static void mostrarReporte() {
         if (listaproductos.isEmpty()) {
             System.out.println("\n No hay productos registrados. Debe ingresar productos primero.");
@@ -521,7 +566,7 @@ public class SistemaIn {
                 System.out.println("\n Opción no válida.");
         }
     }
-
+/** METODOS AUXILIARES PARA MOSTRAR REPORTES */
     private static void mostrarRegistroStock() {
         if (listaproductos.isEmpty()) {
             System.out.println("\n No hay productos en el stock.");
