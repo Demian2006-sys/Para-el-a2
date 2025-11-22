@@ -27,6 +27,9 @@ public class SistemaIn {
 
     private static List<ProductoTia> listaproductos = new ArrayList<>();
 
+    private static boolean bodegaGestionada = false;
+
+    private static long capacidadMaximaBodega = 0;
 
     public static void main(String[] args) {
         int opc;
@@ -38,10 +41,10 @@ public class SistemaIn {
 
                 switch (opc) {
                     case 1:
-                        ingresarProducto();
+                        gestionBodega();
                         break;
                     case 2:
-                        gestionBodega();
+                        ingresarProducto();
                         break;
                     case 3:
                         realizarVenta();
@@ -56,7 +59,7 @@ public class SistemaIn {
                         eliminarProducto();
                         break;
                     case 7:
-
+                        mostrarReporte();
                         break;
                     case 8:
                         System.out.println("\n Saliendo de la aplicación. ¡Hasta pronto!");
@@ -95,7 +98,12 @@ public class SistemaIn {
     }
 
     private static void ingresarProducto() {
-        System.out.println("\n--- Ingreso de Nuevo Producto ---");
+        if (!bodegaGestionada) {
+            System.out.println("\n Debe gestionar la bodega antes de ingresar productos.");
+            bodegaGestionada = false;
+            return;
+        } else{
+            System.out.println("\n--- Ingreso de Nuevo Producto ---");
         System.out.print("Ingrese nombre del producto: ");
         String nombre = scanner.nextLine();
 
@@ -119,6 +127,14 @@ public class SistemaIn {
         System.out.print("Ingrese cantidad: ");
         int cantidad = scanner.nextInt();
         scanner.nextLine();
+        long cantidadActual = obtenerCantidadTotal();
+        if (cantidadActual + cantidad > capacidadMaximaBodega) {
+            System.out.println("\n No se puede ingresar. Excede la capacidad máxima de la bodega.");
+            System.out.println("Capacidad actual: " + cantidadActual);
+            System.out.println("Capacidad máxima: " + capacidadMaximaBodega);
+            System.out.println("Cantidad que se puede agregar: " + (capacidadMaximaBodega - cantidadActual));
+            return;
+            }
 
         System.out.println("\nDisponibilidad:");
         System.out.println("1. Disponible");
@@ -172,17 +188,22 @@ public class SistemaIn {
         listaproductos.add(nuevoProducto);
         System.out.println("\nProducto ingresado con éxito. Código asignado: " + nuevoProducto.getCodigo());
     }
+    }
+
 
     private static void gestionBodega() {
         System.out.println("\n--- Gestión de Bodega ---");
         System.out.println("Ingrese la capacidad máxima de la bodega");
-        long capacidadMaxima = scanner.nextLong();
+        capacidadMaximaBodega = scanner.nextLong();
         scanner.nextLine();
         System.out.println("Ingrese la cantidad máxima de productos");
         int cantidadMaxima = scanner.nextInt();
         scanner.nextLine();
         System.out.println("Ingrese la ubicación de la bodega");
         String ubicacion = scanner.nextLine();
+
+        bodegaGestionada = true;
+        System.out.println("\n Bodega gestionada con exito.");
     }
 
     private static void realizarVenta() {
@@ -201,6 +222,21 @@ public class SistemaIn {
             if (listaproductos.get(i).getCodigo() == codigo) {
                 ProductoTia producto = listaproductos.get(i);
 
+                // VALIDACIÓN: Verificar si el producto está disponible
+                if (!producto.getDisponibilidad().equals("Disponible")) {
+                    System.out.println("\n Producto no disponible. No se puede realizar la venta.");
+                    return;
+                }
+
+                // VALIDACIÓN: Verificar si el producto está vencido
+                System.out.print("Ingrese fecha de compra (dd/mm/aaaa): ");
+                String fechaCompra = scanner.nextLine();
+
+                if (estaVencido(producto.getFechaVencimiento(), fechaCompra)) {
+                    System.out.println("\n Producto vencido. No se puede realizar la venta.");
+                    return;
+                }
+
                 System.out.print("Cantidad a vender: ");
                 int cantidad = scanner.nextInt();
                 scanner.nextLine();
@@ -216,6 +252,17 @@ public class SistemaIn {
                 }
 
                 double monto = producto.getPrecio() * cantidad;
+
+                // DESCUENTO: Si el monto supera $5, aplica 5% de descuento
+                double descuento = 0;
+                if (monto > 5) {
+                    descuento = monto * 0.05;
+                    monto = monto - descuento;
+                    System.out.println("\n¡Descuento aplicado! 5% por compra mayor a $5");
+                    System.out.printf("Monto original: $%.2f%n", producto.getPrecio() * cantidad);
+                    System.out.printf("Descuento: $%.2f%n", descuento);
+                    System.out.printf("Monto final: $%.2f%n", monto);
+                }
 
                 System.out.print("Ingrese nombre del cliente: ");
                 String cliente = scanner.nextLine();
@@ -250,6 +297,13 @@ public class SistemaIn {
 
         System.out.println("\n--- Reabastecer Producto ---");
         System.out.print("Ingrese el código del producto: ");
+
+        if (!scanner.hasNextInt()) {
+            System.out.println("\n Debe ingresar un número válido.");
+            scanner.nextLine();
+            return;
+        }
+
         int codigo = scanner.nextInt();
         scanner.nextLine();
 
@@ -259,11 +313,27 @@ public class SistemaIn {
                 ProductoTia producto = listaproductos.get(i);
 
                 System.out.print("Ingrese la cantidad a reabastecer: ");
+
+                if (!scanner.hasNextInt()) {
+                    System.out.println("\n Debe ingresar un número válido.");
+                    scanner.nextLine();
+                    return;
+                }
+
                 int cantidad = scanner.nextInt();
                 scanner.nextLine();
 
                 if (cantidad <= 0) {
                     System.out.println("\n La cantidad debe ser mayor que cero.");
+                    return;
+                }
+
+                long cantidadActual = obtenerCantidadTotal();
+                if (cantidadActual + cantidad > capacidadMaximaBodega) {
+                    System.out.println("\n No se puede reabastecer. Excede la capacidad máxima de la bodega.");
+                    System.out.println("Capacidad actual: " + cantidadActual);
+                    System.out.println("Capacidad máxima: " + capacidadMaximaBodega);
+                    System.out.println("Cantidad que se puede agregar: " + (capacidadMaximaBodega - cantidadActual));
                     return;
                 }
 
@@ -273,10 +343,11 @@ public class SistemaIn {
                 String fecha = scanner.nextLine();
 
                 encontrado = true;
-                System.out.println("\n Producto reabastecido con éxito.");
+                System.out.println("\n Producto reabastecido con éxito. Stock actual: " + producto.getCantidadP());
                 break;
             }
         }
+
         if (!encontrado) {
             System.out.println("\n No se encontró ningún producto con código " + codigo + ".");
         }
@@ -284,12 +355,19 @@ public class SistemaIn {
 
     private static void eliminarProducto() {
         if (listaproductos.isEmpty()) {
-            System.out.println("\n No hay productos para eliminar.");
+            System.out.println("\n No hay productos registrados. Debe ingresar productos primero.");
             return;
         }
 
         System.out.println("\n--- Eliminar Producto ---");
         System.out.print("Ingrese el código del producto a eliminar: ");
+
+        if (!scanner.hasNextInt()) {
+            System.out.println("\n Debe ingresar un número válido.");
+            scanner.nextLine();
+            return;
+        }
+
         int codigo = scanner.nextInt();
         scanner.nextLine();
 
@@ -307,15 +385,21 @@ public class SistemaIn {
             System.out.println("\n No se encontró ningún producto con código " + codigo + ".");
         }
     }
-
     private static void editarProducto() {
         if (listaproductos.isEmpty()) {
-            System.out.println("\n No hay productos para editar.");
+            System.out.println("\n No hay productos registrados. Debe ingresar productos primero.");
             return;
         }
 
         System.out.println("\n--- Editar Producto ---");
         System.out.print("Ingrese el código del producto a editar: ");
+
+        if (!scanner.hasNextInt()) {
+            System.out.println("\n Debe ingresar un número válido.");
+            scanner.nextLine();
+            return;
+        }
+
         int codigo = scanner.nextInt();
         scanner.nextLine();
 
@@ -327,7 +411,9 @@ public class SistemaIn {
                 System.out.println("\n--- Datos Actuales ---");
                 System.out.println("Nombre: " + producto.getNombre());
                 System.out.println("Precio: " + producto.getPrecio());
+                System.out.println("Tipo: " + producto.getTipo());
                 System.out.println("Cantidad: " + producto.getCantidadP());
+                System.out.println("Disponibilidad: " + producto.getDisponibilidad());
 
                 System.out.println("\n--- Ingrese los Nuevos Datos ---");
 
@@ -335,16 +421,64 @@ public class SistemaIn {
                 String nuevoNombre = scanner.nextLine();
 
                 System.out.print("Nuevo precio: ");
+                // VALIDACIÓN: Precio negativo
+                if (!scanner.hasNextDouble()) {
+                    System.out.println("\n Debe ingresar un número válido.");
+                    scanner.nextLine();
+                    return;
+                }
+
                 double nuevoPrecio = scanner.nextDouble();
                 scanner.nextLine();
 
+                if (nuevoPrecio < 0) {
+                    System.out.println("\n El precio no puede ser negativo.");
+                    return;
+                }
+
+                System.out.print("Nuevo tipo: ");
+                String nuevoTipo = scanner.nextLine();
+
                 System.out.print("Nueva cantidad: ");
+                // VALIDACIÓN: Cantidad negativa
+                if (!scanner.hasNextInt()) {
+                    System.out.println("\n Debe ingresar un número válido.");
+                    scanner.nextLine();
+                    return;
+                }
+
                 int nuevaCantidad = scanner.nextInt();
                 scanner.nextLine();
 
+                if (nuevaCantidad < 0) {
+                    System.out.println("\n La cantidad no puede ser negativa.");
+                    return;
+                }
+
+                long cantidadActual = obtenerCantidadTotal();
+                long diferencia = nuevaCantidad - producto.getCantidadP();
+
+                if (cantidadActual + diferencia > capacidadMaximaBodega) {
+                    System.out.println("\n No se puede actualizar. Excede la capacidad máxima de la bodega.");
+                    System.out.println("Capacidad actual: " + cantidadActual);
+                    System.out.println("Capacidad máxima: " + capacidadMaximaBodega);
+                    System.out.println("Cantidad máxima permitida: " + (capacidadMaximaBodega - cantidadActual + producto.getCantidadP()));
+                    return;
+                }
+                System.out.println("\nNueva disponibilidad:");
+                System.out.println("1. Disponible");
+                System.out.println("2. No disponible");
+                System.out.print(">>> Seleccione disponibilidad: ");
+                int opci = scanner.nextInt();
+                scanner.nextLine();
+
+                String nuevaDisponibilidad = (opci == 1) ? "Disponible" : "No disponible";
+
                 producto.setNombre(nuevoNombre);
                 producto.setPrecio(nuevoPrecio);
+                producto.setTipo(nuevoTipo);
                 producto.setCantidadP(nuevaCantidad);
+                producto.setDisponibilidad(nuevaDisponibilidad);
 
                 encontrado = true;
                 System.out.println("\n Producto actualizado con éxito.");
@@ -356,5 +490,117 @@ public class SistemaIn {
             System.out.println("\n No se encontró ningún producto con código " + codigo + ".");
         }
     }
+    private static void mostrarReporte() {
+        if (listaproductos.isEmpty()) {
+            System.out.println("\n No hay productos registrados. Debe ingresar productos primero.");
+            return;
+        }
+
+        System.out.println("\n--- Reporte del Sistema ---");
+        System.out.println("1. Ver Registro de Stock");
+        System.out.println("2. Ver Registro de Ventas");
+        System.out.print(">>> Seleccione opción: ");
+
+        if (!scanner.hasNextInt()) {
+            System.out.println("\n Opción no válida.");
+            scanner.nextLine();
+            return;
+        }
+
+        int opcion = scanner.nextInt();
+        scanner.nextLine();
+
+        switch (opcion) {
+            case 1:
+                mostrarRegistroStock();
+                break;
+            case 2:
+                mostrarRegistroVentas();
+                break;
+            default:
+                System.out.println("\n Opción no válida.");
+        }
+    }
+
+    private static void mostrarRegistroStock() {
+        if (listaproductos.isEmpty()) {
+            System.out.println("\n No hay productos en el stock.");
+            return;
+        }
+
+        System.out.println("\n=== REGISTRO DE STOCK ===");
+        System.out.printf("%-8s %-20s %-12s %-10s %-15s %-12s %-15s%n",
+                "Código", "Nombre", "Precio", "Cantidad", "Tipo", "Disponibilidad", "Demanda");
+        System.out.println("------------------------------------------------------------------------------------");
+
+        for (ProductoTia producto : listaproductos) {
+            String demanda = producto.getDemandaAlta() == 1 ? "Alta" :
+                    producto.getDemandaMedia() == 1 ? "Media" : "Baja";
+            System.out.printf("%-8d %-20s $%-11.2f %-10d %-15s %-12s %-15s%n",
+                    producto.getCodigo(),
+                    producto.getNombre(),
+                    producto.getPrecio(),
+                    producto.getCantidadP(),
+                    producto.getTipo(),
+                    producto.getDisponibilidad(),
+                    demanda);
+        }
+    }
+
+    private static void mostrarRegistroVentas() {
+        if (listaVentas.isEmpty()) {
+            System.out.println("\n No hay ventas registradas.");
+            return;
+        }
+
+        System.out.println("\n=== REGISTRO DE VENTAS ===");
+        System.out.printf("%-15s %-15s %-20s %-15s%n",
+                "Transacción", "Monto", "Cliente", "Fecha");
+        System.out.println("------------------------------------------------------------------------");
+
+        for (Venta venta : listaVentas) {
+            System.out.printf("%-15s $%-14.2f %-20s %-15s%n",
+                    venta.getNumeroTransaccion(),
+                    venta.getMonto(),
+                    venta.getCliente(),
+                    venta.getFecha());
+        }
+    }
+
+    private static boolean estaVencido(String fechaVencimiento, String fechaCompra) {
+        // Formato esperado: dd/mm/aaaa
+        String[] partsVencimiento = fechaVencimiento.split("/");
+        String[] partsCompra = fechaCompra.split("/");
+
+        int diaV = Integer.parseInt(partsVencimiento[0]);
+        int mesV = Integer.parseInt(partsVencimiento[1]);
+        int anoV = Integer.parseInt(partsVencimiento[2]);
+
+        int diaC = Integer.parseInt(partsCompra[0]);
+        int mesC = Integer.parseInt(partsCompra[1]);
+        int anoC = Integer.parseInt(partsCompra[2]);
+
+        // Comparar año
+        if (anoC > anoV) return true;
+        if (anoC < anoV) return false;
+
+        // Comparar mes
+        if (mesC > mesV) return true;
+        if (mesC < mesV) return false;
+
+        // Comparar día
+        return diaC > diaV;
+    }
+
+    private static long obtenerCantidadTotal() {
+        long total = 0;
+        for (int i = 0; i < listaproductos.size(); i++) {
+            total += listaproductos.get(i).getCantidadP();
+        }
+        return total;
+    }
+
+
+
 }
 
