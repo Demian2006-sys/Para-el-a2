@@ -465,7 +465,6 @@ private static void ingresarProducto() {
                 String nuevoNombre = scanner.nextLine();
 
                 System.out.print("Nuevo precio: ");
-                // VALIDACIÓN: Precio negativo
                 if (!scanner.hasNextDouble()) {
                     System.out.println("\n Debe ingresar un número válido.");
                     scanner.nextLine();
@@ -483,8 +482,60 @@ private static void ingresarProducto() {
                 System.out.print("Nuevo tipo: ");
                 String nuevoTipo = scanner.nextLine();
 
+                System.out.print("Nueva fecha de elaboración (dd/mm/aaaa): ");
+                String nuevaFechaElaboracion = scanner.nextLine();
+
+                System.out.println("\n¿Es perecible?");
+                System.out.println("1. Sí");
+                System.out.println("2. No");
+                System.out.print(">>> Seleccione: ");
+                int opcionPerecible = scanner.nextInt();
+                scanner.nextLine();
+
+                String nuevaFechaVencimiento = "";
+                if (opcionPerecible == 1) {
+                    boolean fechaValida = false;
+                    while (!fechaValida) {
+                        System.out.print("Nueva fecha de vencimiento (dd/mm/aaaa): ");
+                        nuevaFechaVencimiento = scanner.nextLine();
+
+                        int diaE = Integer.parseInt(nuevaFechaElaboracion.charAt(0) + "" + nuevaFechaElaboracion.charAt(1));
+                        int mesE = Integer.parseInt(nuevaFechaElaboracion.charAt(3) + "" + nuevaFechaElaboracion.charAt(4));
+                        int anoE = Integer.parseInt(nuevaFechaElaboracion.charAt(6) + "" + nuevaFechaElaboracion.charAt(7) + "" + nuevaFechaElaboracion.charAt(8) + "" + nuevaFechaElaboracion.charAt(9));
+
+                        int diaV = Integer.parseInt(nuevaFechaVencimiento.charAt(0) + "" + nuevaFechaVencimiento.charAt(1));
+                        int mesV = Integer.parseInt(nuevaFechaVencimiento.charAt(3) + "" + nuevaFechaVencimiento.charAt(4));
+                        int anoV = Integer.parseInt(nuevaFechaVencimiento.charAt(6) + "" + nuevaFechaVencimiento.charAt(7) + "" + nuevaFechaVencimiento.charAt(8) + "" + nuevaFechaVencimiento.charAt(9));
+
+                        if (anoV > anoE || (anoV == anoE && mesV > mesE) || (anoV == anoE && mesV == mesE && diaV >= diaE)) {
+                            fechaValida = true;
+                        } else {
+                            System.out.println("\n La fecha de vencimiento no puede ser menor a la fecha de elaboración.");
+                        }
+                    }
+                } else if (opcionPerecible == 2) {
+                    nuevaFechaVencimiento = "N/A";
+                } else {
+                    System.out.println("\n Opción no válida.");
+                    return;
+                }
+
+                System.out.print("Nueva garantía en meses: ");
+                if (!scanner.hasNextInt()) {
+                    System.out.println("\n Debe ingresar un número válido.");
+                    scanner.nextLine();
+                    return;
+                }
+
+                int nuevaGarantia = scanner.nextInt();
+                scanner.nextLine();
+
+                if (nuevaGarantia < 0) {
+                    System.out.println("\n La garantía no puede ser negativa.");
+                    return;
+                }
+
                 System.out.print("Nueva cantidad: ");
-                // VALIDACIÓN: Cantidad negativa
                 if (!scanner.hasNextInt()) {
                     System.out.println("\n Debe ingresar un número válido.");
                     scanner.nextLine();
@@ -509,6 +560,7 @@ private static void ingresarProducto() {
                     System.out.println("Cantidad máxima permitida: " + (capacidadMaximaBodega - cantidadActual + producto.getCantidadP()));
                     return;
                 }
+
                 System.out.println("\nNueva disponibilidad:");
                 System.out.println("1. Disponible");
                 System.out.println("2. No disponible");
@@ -521,6 +573,9 @@ private static void ingresarProducto() {
                 producto.setNombre(nuevoNombre);
                 producto.setPrecio(nuevoPrecio);
                 producto.setTipo(nuevoTipo);
+                producto.setFechaElaboracion(nuevaFechaElaboracion);
+                producto.setFechaVencimiento(nuevaFechaVencimiento);
+                producto.setGarantiaMeses(nuevaGarantia);
                 producto.setCantidadP(nuevaCantidad);
                 producto.setDisponibilidad(nuevaDisponibilidad);
 
@@ -613,7 +668,11 @@ private static void ingresarProducto() {
     }
 
     private static boolean estaVencido(String fechaVencimiento, String fechaCompra) {
-        // Formato esperado: dd/mm/aaaa
+        // Si no es perecible, no está vencido
+        if (fechaVencimiento.equals("N/A")) {
+            return false;
+        }
+
         String[] partsVencimiento = fechaVencimiento.split("/");
         String[] partsCompra = fechaCompra.split("/");
 
@@ -625,18 +684,14 @@ private static void ingresarProducto() {
         int mesC = Integer.parseInt(partsCompra[1]);
         int anoC = Integer.parseInt(partsCompra[2]);
 
-        // Comparar año
         if (anoC > anoV) return true;
         if (anoC < anoV) return false;
 
-        // Comparar mes
         if (mesC > mesV) return true;
         if (mesC < mesV) return false;
 
-        // Comparar día
         return diaC > diaV;
     }
-
     private static long obtenerCantidadTotal() {
         long total = 0;
         for (int i = 0; i < listaproductos.size(); i++) {
